@@ -1,46 +1,52 @@
 package com.example.application.views.login;
 
 import com.example.application.security.AuthenticatedUser;
+import com.vaadin.flow.component.html.Anchor;
+import com.vaadin.flow.component.login.LoginForm;
 import com.vaadin.flow.component.login.LoginI18n;
-import com.vaadin.flow.component.login.LoginOverlay;
-import com.vaadin.flow.router.BeforeEnterEvent;
-import com.vaadin.flow.router.BeforeEnterObserver;
+import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
-import com.vaadin.flow.router.internal.RouteUtil;
-import com.vaadin.flow.server.VaadinService;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
 
 @AnonymousAllowed
 @PageTitle("Login")
-@Route(value = "login")
-public class LoginView extends LoginOverlay implements BeforeEnterObserver {
-
-    private final AuthenticatedUser authenticatedUser;
+@Route("login")
+public class LoginView extends VerticalLayout {
 
     public LoginView(AuthenticatedUser authenticatedUser) {
-        this.authenticatedUser = authenticatedUser;
-        setAction(RouteUtil.getRoutePath(VaadinService.getCurrent().getContext(), getClass()));
+        setSizeFull();
+        setAlignItems(Alignment.CENTER);
+        setJustifyContentMode(JustifyContentMode.CENTER);
 
+        authenticatedUser.get().ifPresent(user ->
+            getUI().ifPresent(ui -> ui.navigate(""))
+        );
+
+        // Formulario de login
+        LoginForm loginForm = new LoginForm();
+        loginForm.setAction("login");
+
+        // Personalizar texto del formulario
         LoginI18n i18n = LoginI18n.createDefault();
-        i18n.setHeader(new LoginI18n.Header());
-        i18n.getHeader().setTitle("My App");
-        i18n.getHeader().setDescription("Login using user/user or admin/admin");
-        i18n.setAdditionalInformation(null);
-        setI18n(i18n);
+        LoginI18n.Header header = new LoginI18n.Header();
+        header.setTitle("Mi Aplicación");
+        header.setDescription("Introduce tus credenciales");
+        i18n.setHeader(header);
+        loginForm.setI18n(i18n);
 
-        setForgotPasswordButtonVisible(false);
-        setOpened(true);
-    }
+        // Mostrar error si ?error
+        getUI().ifPresent(ui -> {
+            boolean hasError = ui.getInternals().getActiveViewLocation()
+                .getQueryParameters().getParameters().containsKey("error");
+            loginForm.setError(hasError);
+        });
 
-    @Override
-    public void beforeEnter(BeforeEnterEvent event) {
-        if (authenticatedUser.get().isPresent()) {
-            // Already logged in
-            setOpened(false);
-            event.forwardTo("");
-        }
+        // Enlace a registro
+        Anchor enlaceRegistro = new Anchor("registro", "¿No tienes cuenta? Regístrate aquí");
+        enlaceRegistro.getStyle().set("margin-top", "1rem");
 
-        setError(event.getLocation().getQueryParameters().getParameters().containsKey("error"));
+        add(loginForm, enlaceRegistro);
     }
 }
+

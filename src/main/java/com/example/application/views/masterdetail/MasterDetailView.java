@@ -58,6 +58,8 @@ public class MasterDetailView extends Div implements BeforeEnterObserver {
 
     private final Button cancel = new Button("Cancel");
     private final Button save = new Button("Save");
+    private final Button nuevo = new Button("Nuevo");
+    private final Button eliminar = new Button("Eliminar");
 
     private final BeanValidationBinder<SamplePerson> binder;
 
@@ -69,15 +71,11 @@ public class MasterDetailView extends Div implements BeforeEnterObserver {
         this.samplePersonService = samplePersonService;
         addClassNames("master-detail-view");
 
-        // Create UI
         SplitLayout splitLayout = new SplitLayout();
-
         createGridLayout(splitLayout);
         createEditorLayout(splitLayout);
-
         add(splitLayout);
 
-        // Configure Grid
         grid.addColumn("firstName").setAutoWidth(true);
         grid.addColumn("lastName").setAutoWidth(true);
         grid.addColumn("email").setAutoWidth(true);
@@ -87,17 +85,13 @@ public class MasterDetailView extends Div implements BeforeEnterObserver {
         grid.addColumn("role").setAutoWidth(true);
         LitRenderer<SamplePerson> importantRenderer = LitRenderer.<SamplePerson>of(
                 "<vaadin-icon icon='vaadin:${item.icon}' style='width: var(--lumo-icon-size-s); height: var(--lumo-icon-size-s); color: ${item.color};'></vaadin-icon>")
-                .withProperty("icon", important -> important.isImportant() ? "check" : "minus").withProperty("color",
-                        important -> important.isImportant()
-                                ? "var(--lumo-primary-text-color)"
-                                : "var(--lumo-disabled-text-color)");
-
+                .withProperty("icon", important -> important.isImportant() ? "check" : "minus")
+                .withProperty("color", important -> important.isImportant() ? "var(--lumo-primary-text-color)" : "var(--lumo-disabled-text-color)");
         grid.addColumn(importantRenderer).setHeader("Important").setAutoWidth(true);
 
         grid.setItems(query -> samplePersonService.list(VaadinSpringDataHelpers.toSpringPageRequest(query)).stream());
         grid.addThemeVariants(GridVariant.LUMO_NO_BORDER);
 
-        // when a row is selected or deselected, populate form
         grid.asSingleSelect().addValueChangeListener(event -> {
             if (event.getValue() != null) {
                 UI.getCurrent().navigate(String.format(SAMPLEPERSON_EDIT_ROUTE_TEMPLATE, event.getValue().getId()));
@@ -107,11 +101,7 @@ public class MasterDetailView extends Div implements BeforeEnterObserver {
             }
         });
 
-        // Configure Form
         binder = new BeanValidationBinder<>(SamplePerson.class);
-
-        // Bind fields. This is where you'd define e.g. validation rules
-
         binder.bindInstanceFields(this);
 
         cancel.addClickListener(e -> {
@@ -128,15 +118,31 @@ public class MasterDetailView extends Div implements BeforeEnterObserver {
                 samplePersonService.save(this.samplePerson);
                 clearForm();
                 refreshGrid();
-                Notification.show("Data updated");
+                Notification.show("Datos actualizados");
                 UI.getCurrent().navigate(MasterDetailView.class);
             } catch (ObjectOptimisticLockingFailureException exception) {
-                Notification n = Notification.show(
-                        "Error updating the data. Somebody else has updated the record while you were making changes.");
+                Notification n = Notification.show("Error actualizando. Otro usuario ha modificado este registro.");
                 n.setPosition(Position.MIDDLE);
                 n.addThemeVariants(NotificationVariant.LUMO_ERROR);
             } catch (ValidationException validationException) {
-                Notification.show("Failed to update the data. Check again that all values are valid");
+                Notification.show("Fallo en la validación. Revisa los campos.");
+            }
+        });
+
+        nuevo.addClickListener(e -> {
+            clearForm();
+            this.samplePerson = new SamplePerson();
+            Notification.show("Formulario preparado para nuevo usuario");
+        });
+
+        eliminar.addClickListener(e -> {
+            if (this.samplePerson != null && this.samplePerson.getId() != null) {
+                samplePersonService.delete(this.samplePerson.getId());
+                clearForm();
+                refreshGrid();
+                Notification.show("Usuario eliminado");
+            } else {
+                Notification.show("No hay usuario seleccionado para eliminar", 3000, Position.BOTTOM_START);
             }
         });
     }
@@ -149,11 +155,7 @@ public class MasterDetailView extends Div implements BeforeEnterObserver {
             if (samplePersonFromBackend.isPresent()) {
                 populateForm(samplePersonFromBackend.get());
             } else {
-                Notification.show(
-                        String.format("The requested samplePerson was not found, ID = %s", samplePersonId.get()), 3000,
-                        Notification.Position.BOTTOM_START);
-                // when a row is selected but the data is no longer available,
-                // refresh grid
+                Notification.show(String.format("El usuario no existe, ID = %s", samplePersonId.get()), 3000, Notification.Position.BOTTOM_START);
                 refreshGrid();
                 event.forwardTo(MasterDetailView.class);
             }
@@ -190,7 +192,9 @@ public class MasterDetailView extends Div implements BeforeEnterObserver {
         buttonLayout.setClassName("button-layout");
         cancel.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
         save.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-        buttonLayout.add(save, cancel);
+        nuevo.addThemeVariants(ButtonVariant.LUMO_SUCCESS);
+        eliminar.addThemeVariants(ButtonVariant.LUMO_ERROR);
+        buttonLayout.add(nuevo, save, eliminar, cancel);
         editorLayoutDiv.add(buttonLayout);
     }
 
@@ -213,6 +217,6 @@ public class MasterDetailView extends Div implements BeforeEnterObserver {
     private void populateForm(SamplePerson value) {
         this.samplePerson = value;
         binder.readBean(this.samplePerson);
-
     }
 }
+

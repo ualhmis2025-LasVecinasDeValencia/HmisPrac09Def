@@ -34,7 +34,7 @@ import java.util.Optional;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.vaadin.lineawesome.LineAwesomeIconUrl;
 
-@PageTitle("Master-Detail")
+@PageTitle("Lista de Personas")
 @Route("/:samplePersonID?/:action?(edit)")
 @Menu(order = 0, icon = LineAwesomeIconUrl.COLUMNS_SOLID)
 @RouteAlias("")
